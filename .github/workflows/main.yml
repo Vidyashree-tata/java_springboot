@@ -23,15 +23,17 @@ jobs:
         unset HTTP_PROXY
         unset HTTPS_PROXY
 
+    - name: Unset Git Proxy
+      run: |
+        git config --global --unset http.proxy
+        git config --global --unset https.proxy
+
     - name: Checkout Source Code
       uses: actions/checkout@v2
       with:
         repository: 'Vidyashree-tata/java_springboot'
         ref: 'develop'
         token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Test Network Connectivity
-      run: ping -c 4 10.75.12.85
 
     - name: Update DNS Settings
       run: |
@@ -63,3 +65,4 @@ jobs:
         kubectl apply -f trans_planner_deployment.yaml
         kubectl get pods -n transconnect
         kubectl get svc -n transconnect
+
