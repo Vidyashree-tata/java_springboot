@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - trans_planner
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_CREDENTIALS_ID: ${{ secrets.DOCKER_CREDENTIALS_ID }}
+      DOCKER_REGISTRY_URL: 'http://10.75.12.85:8085'
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: 'http://10.75.12.85:9000'
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v2
+      with:
+        repository: 'ssh://42641@tegerrit.tataelxsi.co.in:29418/TE_JIOBPTRANSONNECT'
+        ref: 'trans_planner'
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # Uncomment the following steps if you want to include SonarQube analysis
+    # - name: SonarQube Analysis
+    #   env:
+    #     SONARQUBE_PROJECT_KEY: "JIO_BP_trans_connect-trans_planner"
+    #   run: |
+    #     /opt/sonar-scanner/bin/sonar-scanner \
+    #       -Dsonar.projectKey=${{ env.SONARQUBE_PROJECT_KEY }} \
+    #       -Dsonar.sources=. \
+    #       -Dsonar.java.binaries=build/classes \
+    #       -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
+    #       -Dsonar.login=${{ env.SONAR_TOKEN }} \
+    #       -Dsonar.qualitygate.wait=true
+
+    # - name: Quality Gate Check
+    #   run: |
+    #     timeout 5m \
+    #     waitForQualityGate() {
+    #       if [ "$(curl -s -u ${{ env.SONAR_TOKEN }}: ${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=${SONARQUBE_PROJECT_KEY} | jq -r .projectStatus.status)" != "OK" ]; then
+    #         echo "Pipeline failed due to SonarQube quality gate failure."
+    #         exit 1
+    #       fi
+    #     }
+
+    - name: Docker Nexus Login
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login ${{ env.DOCKER_REGISTRY_URL }} -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    - name: Docker Build and Push
+      run: |
+        docker build -t trans_planner:1.0 .
+        docker tag trans_planner:1.0 ${{ env.DOCKER_REGISTRY_URL }}/trans_planner:1.0
+        docker push ${{ env.DOCKER_REGISTRY_URL }}/trans_planner:1.0
+
+    - name: Deploy to Kubernetes
+      env:
+        KUBECONFIG: ${{ secrets.KUBECONFIG }}
+      run: |
+        echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+        export KUBECONFIG=kubeconfig.yaml
+        kubectl apply -f trans_planner_deployment.yaml
+        kubectl get pods -n transconnect
+        kubectl get svc -n transconnect
