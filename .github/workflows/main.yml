@@ -19,7 +19,7 @@ jobs:
     - name: Checkout Source Code
       uses: actions/checkout@v2
       with:
-        repository: 'java_springboot'
+        repository: 'Vidyashree-tata/java_springboot'
         ref: 'develop'
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -50,6 +50,8 @@ jobs:
       env:
         KUBECONFIG: ${{ secrets.KUBECONFIG }}
       run: |
+        echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+        export KUBECONFIG=kubeconfig.yaml
         kubectl apply -f trans_planner_deployment.yaml
         kubectl get pods -n transconnect
         kubectl get svc -n transconnect
