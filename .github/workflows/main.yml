@@ -8,11 +8,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     env:
       DOCKER_REGISTRY_URL: 'http://10.75.12.85:8085'
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: 'http://10.75.12.85:9000'
+      HTTP_PROXY: http://proxy.example.com:8080
+      HTTPS_PROXY: http://proxy.example.com:8080
+      NO_PROXY: localhost,127.0.0.1,10.75.12.85
 
     steps:
     - name: Checkout Source Code
@@ -22,18 +26,13 @@ jobs:
         ref: 'develop'
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Uncomment the following steps if you want to include SonarQube analysis
-    # - name: SonarQube Analysis
-    #   env:
-    #     SONARQUBE_PROJECT_KEY: "JIO_BP_trans_connect-trans_planner"
-    #   run: |
-    #     /opt/sonar-scanner/bin/sonar-scanner \
-    #       -Dsonar.projectKey=${{ env.SONARQUBE_PROJECT_KEY }} \
-    #       -Dsonar.sources=. \
-    #       -Dsonar.java.binaries=build/classes \
-    #       -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
-    #       -Dsonar.login=${{ env.SONAR_TOKEN }} \
-    #       -Dsonar.qualitygate.wait=true
+    - name: Test Network Connectivity
+      run: ping -c 4 10.75.12.85
+
+    - name: Update DNS Settings
+      run: |
+        echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+        echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf
 
     - name: Test Registry Connection
       run: curl -v http://10.75.12.85:8085/v2/
