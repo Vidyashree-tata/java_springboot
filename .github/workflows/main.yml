@@ -14,11 +14,15 @@ jobs:
       DOCKER_REGISTRY_URL: 'http://10.75.12.85:8085'
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: 'http://10.75.12.85:9000'
-      HTTP_PROXY: http://proxy.example.com:8080
-      HTTPS_PROXY: http://proxy.example.com:8080
-      NO_PROXY: localhost,127.0.0.1,10.75.12.85
 
     steps:
+    - name: Unset Proxy Variables
+      run: |
+        unset http_proxy
+        unset https_proxy
+        unset HTTP_PROXY
+        unset HTTPS_PROXY
+
     - name: Checkout Source Code
       uses: actions/checkout@v2
       with:
