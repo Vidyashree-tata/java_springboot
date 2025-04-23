@@ -35,8 +35,9 @@ jobs:
         echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
         echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf
 
-    - name: Test Registry Connection
-      run: curl -v http://10.75.12.85:8085/v2/
+    # Commenting out Test Registry Connection step
+    # - name: Test Registry Connection
+    #   run: curl -v http://10.75.12.85:8085/v2/
 
     # Commenting out Docker Nexus Login step
     # - name: Docker Nexus Login
@@ -51,7 +52,6 @@ jobs:
         docker build -t trans_planner:1.0 .
         docker tag trans_planner:1.0 10.75.12.85:8085/trans_planner:1.0
         docker push 10.75.12.85:8085/trans_planner:1.0
-
     - name: Deploy to Kubernetes
       env:
         KUBECONFIG: ${{ secrets.KUBECONFIG }}
