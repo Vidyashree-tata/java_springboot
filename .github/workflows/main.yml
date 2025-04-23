@@ -1,0 +1,55 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_CREDENTIALS_ID: ${{ secrets.DOCKER_CREDENTIALS_ID }}
+      DOCKER_REGISTRY_URL: 'http://10.75.12.85:8085'
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: 'http://10.75.12.85:9000'
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v2
+      with:
+        repository: 'java_springboot'
+        ref: 'develop'
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # Uncomment the following steps if you want to include SonarQube analysis
+    # - name: SonarQube Analysis
+    #   env:
+    #     SONARQUBE_PROJECT_KEY: "JIO_BP_trans_connect-trans_planner"
+    #   run: |
+    #     /opt/sonar-scanner/bin/sonar-scanner \
+    #       -Dsonar.projectKey=${{ env.SONARQUBE_PROJECT_KEY }} \
+    #       -Dsonar.sources=. \
+    #       -Dsonar.java.binaries=build/classes \
+    #       -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
+    #       -Dsonar.login=${{ env.SONAR_TOKEN }} \
+    #       -Dsonar.qualitygate.wait=true
+
+    - name: Docker Nexus Login
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login ${{ env.DOCKER_REGISTRY_URL }} -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    - name: Docker Build and Push
+      run: |
+        docker build -t trans_planner:1.0 .
+        docker tag trans_planner:1.0 10.75.12.85:8085/trans_planner:1.0
+        docker push 10.75.12.85:8085/trans_planner:1.0
+
+    - name: Deploy to Kubernetes
+      env:
+        KUBECONFIG: ${{ secrets.KUBECONFIG }}
+      run: |
+        kubectl apply -f trans_planner_deployment.yaml
+        kubectl get pods -n transconnect
+        kubectl get svc -n transconnect
